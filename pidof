@@ -1,0 +1,37 @@
+#!/usr/bin/python2
+
+import subprocess
+import sys
+
+if len(sys.argv) < 2:
+	sys.stderr.write("Usage: pidof [prog1] (optional: [prog2] [prog3...]\n")
+	sys.exit(1)
+
+
+pids = []
+for procName in sys.argv[1:]:
+	pipe = subprocess.Popen("ps -ea | grep " + procName, shell=True, stdout=subprocess.PIPE)
+	outputLines = pipe.stdout.read().replace("\r", "").split("\n")
+	ret = pipe.wait()
+	if ret != 0:
+		# No results
+		continue
+	for line in outputLines:
+		if not line:
+			continue
+		lineSplit = [item for item in line.split(' ') if item]
+		cmd = lineSplit[-1].split('/')[-1]
+		if cmd == procName:
+			try:
+				pid = int(lineSplit[0].strip())
+			except:
+				pid = int(lineSplit[1].strip())
+			pid = str(pid)
+			if pid not in pids:
+				pids.append(pid)
+				
+
+
+pidsStr = ' '.join(pids)
+print pidsStr 
+

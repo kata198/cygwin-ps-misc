@@ -1,0 +1,35 @@
+#!/usr/bin/python2
+
+import subprocess
+import sys
+
+killExtra = '';
+if '-9' in sys.argv:
+	killExtra = ' -9 '
+	sys.argv.remove('-9')
+
+
+if len(sys.argv) < 2:
+	sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
+	sys.exit(1)
+	
+
+pids = []
+for procName in sys.argv[1:]:
+	pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
+	thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
+	pids += [pid for pid in thesePids if pid]
+	pipe.wait()
+
+pids = list(set(pids))
+
+if not pids:
+	print "No process found"
+	sys.exit(0)
+
+pidsStr = ' '.join(pids)
+
+print "Killing: " + pidsStr
+
+subprocess.Popen('kill %s %s' %(killExtra, pidsStr), shell=True).wait()
+	
