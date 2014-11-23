@@ -31,7 +31,9 @@ for procName in sys.argv[1:]:
 				pids.append(pid)
 				
 
-
-pidsStr = ' '.join(pids)
-print pidsStr 
-
+if len(pids) > 0:
+    pidsStr = ' '.join(pids)
+    print pidsStr
+    sys.exit(0)
+else:
+    sys.exit(1)

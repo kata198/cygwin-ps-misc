@@ -15,21 +15,23 @@ if len(sys.argv) < 2:
 	
 
 pids = []
+retCode = 0
 for procName in sys.argv[1:]:
 	pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
 	thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
-	pids += [pid for pid in thesePids if pid]
-	pipe.wait()
+        thesePids = [pid for pid in thesePids if pid]
+	ret = pipe.wait()
+        if ret == 1 or len(thesePids) == 0:
+            sys.stderr.write(procName + ": no process found\n")
+            retCode = 1
+        else:
+            pids += thesePids
+        
+if len(pids) > 0:
+    pids = list(set(pids))
+    pidsStr = ' '.join(pids)
+    print "Killing: " + pidsStr
 
-pids = list(set(pids))
+    subprocess.Popen('kill %s %s' %(killExtra, pidsStr), shell=True).wait()
 
-if not pids:
-	print "No process found"
-	sys.exit(0)
-
-pidsStr = ' '.join(pids)
-
-print "Killing: " + pidsStr
-
-subprocess.Popen('kill %s %s' %(killExtra, pidsStr), shell=True).wait()
-	
+sys.exit(retCode)
