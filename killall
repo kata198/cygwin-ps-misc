@@ -1,26 +1,39 @@
 #!/usr/bin/python2
 
+import os
+import signal
 import subprocess
 import sys
 
-killExtra = '';
-if '-9' in sys.argv:
-	killExtra = ' -9 '
-	sys.argv.remove('-9')
-
+if len(sys.argv) > 1 and sys.argv[1][0] == '-':
+        signalName = sys.argv[1][1:]
+        if signalName.isdigit():
+            theSignal = signalName
+        else:
+            signalName = signalName.upper()
+            if hasattr(signal, signalName):
+                theSignal = getattr(signal, signalName)
+            else:
+                sys.stderr.write('Invalid signal: ' + theSignal)
+                sys.exit(1)
+        sys.argv.remove(sys.argv[1])
+else:
+        theSignal = signal.SIGTERM
 
 if len(sys.argv) < 2:
-	sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
-	sys.exit(1)
-	
+        sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
+        sys.exit(1)
+        
+
+mypid = os.getpid()
 
 pids = []
 retCode = 0
 for procName in sys.argv[1:]:
-	pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
-	thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
-        thesePids = [pid for pid in thesePids if pid]
-	ret = pipe.wait()
+        pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
+        thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
+        thesePids = [pid for pid in thesePids if pid and str(pid) != str(mypid)]
+        ret = pipe.wait()
         if ret == 1 or len(thesePids) == 0:
             sys.stderr.write(procName + ": no process found\n")
             retCode = 1
@@ -29,9 +42,7 @@ for procName in sys.argv[1:]:
         
 if len(pids) > 0:
     pids = list(set(pids))
-    pidsStr = ' '.join(pids)
-    print "Killing: " + pidsStr
-
-    subprocess.Popen('kill %s %s' %(killExtra, pidsStr), shell=True).wait()
+    for pid in pids:
+        os.kill(int(pid), theSignal)
 
 sys.exit(retCode)
