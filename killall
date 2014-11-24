@@ -6,23 +6,23 @@ import subprocess
 import sys
 
 if len(sys.argv) > 1 and sys.argv[1][0] == '-':
-        signalName = sys.argv[1][1:]
-        if signalName.isdigit():
-            theSignal = signalName
+    signalName = sys.argv[1][1:]
+    if signalName.isdigit():
+        theSignal = signalName
+    else:
+        signalName = signalName.upper()
+        if hasattr(signal, signalName):
+            theSignal = getattr(signal, signalName)
         else:
-            signalName = signalName.upper()
-            if hasattr(signal, signalName):
-                theSignal = getattr(signal, signalName)
-            else:
-                sys.stderr.write('Invalid signal: ' + theSignal)
-                sys.exit(1)
-        sys.argv.remove(sys.argv[1])
+            sys.stderr.write('Invalid signal: ' + theSignal)
+            sys.exit(1)
+    sys.argv.remove(sys.argv[1])
 else:
-        theSignal = signal.SIGTERM
+    theSignal = signal.SIGTERM
 
 if len(sys.argv) < 2:
-        sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
-        sys.exit(1)
+    sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
+    sys.exit(1)
         
 
 mypid = os.getpid()
@@ -30,18 +30,19 @@ mypid = os.getpid()
 pids = []
 retCode = 0
 for procName in sys.argv[1:]:
-        pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
-        thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
-        thesePids = [pid for pid in thesePids if pid and str(pid) != str(mypid)]
-        ret = pipe.wait()
-        if ret == 1 or len(thesePids) == 0:
-            sys.stderr.write(procName + ": no process found\n")
-            retCode = 1
-        else:
-            pids += thesePids
+    pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
+    thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
+    thesePids = [pid for pid in thesePids if pid and str(pid) != str(mypid)]
+    ret = pipe.wait()
+    if ret == 1 or len(thesePids) == 0:
+        sys.stderr.write(procName + ": no process found\n")
+        retCode = 1
+    else:
+        pids += thesePids
         
 if len(pids) > 0:
     pids = list(set(pids))
+    print "Killing: " + (' '.join(pids))
     for pid in pids:
         os.kill(int(pid), theSignal)
 
