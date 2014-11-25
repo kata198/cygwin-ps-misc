@@ -44,6 +44,9 @@ if len(pids) > 0:
     pids = list(set(pids))
     print "Killing: " + (' '.join(pids))
     for pid in pids:
-        os.kill(int(pid), theSignal)
+        try:
+            os.kill(int(pid), theSignal)
+        except OSError:
+            print "(%d) - No such process" %(pid, )
 
 sys.exit(retCode)
