@@ -14,40 +14,179 @@
       https://raw.githubusercontent.com/kata198/cygwin-ps-misc/master/LICENSE
 '''
 
+#vim: set ts=8 sw=8 st=8 noexpandtab :
+
+import os
+import glob
 import subprocess
 import sys
 
-if len(sys.argv) < 2:
-	sys.stderr.write("Usage: pidof [prog1] (optional: [prog2] [prog3...]\n")
-	sys.exit(1)
 
+# Use the encoding from stdin (terminal)
+#   If cannot be determined, default to utf-8
 
-pids = []
-for procName in sys.argv[1:]:
-	pipe = subprocess.Popen("ps -ea | grep " + procName, shell=True, stdout=subprocess.PIPE)
-	outputLines = pipe.stdout.read().replace("\r", "").split("\n")
-	ret = pipe.wait()
-	if ret != 0:
-		# No results
-		continue
-	for line in outputLines:
-		if not line:
-			continue
-		lineSplit = [item for item in line.split(' ') if item]
-		cmd = lineSplit[-1].split('/')[-1]
-		if cmd == procName:
-			try:
-				pid = int(lineSplit[0].strip())
-			except:
-				pid = int(lineSplit[1].strip())
-			pid = str(pid)
-			if pid not in pids:
-				pids.append(pid)
-				
+try:
+    stringEncoding = sys.stdin.encoding
+    if not stringEncoding or stringEncoding == 'ascii':
+        stringEncoding = 'utf-8'
+except:
+    stringEncoding = 'utf-8'
 
-if len(pids) > 0:
-    pidsStr = ' '.join(pids)
-    print pidsStr
-    sys.exit(0)
+# 
+try:
+    UnicodeDecodeError
+except NameError:
+    UnicodeDecodeError = ValueError
+
+def _unicodeFail(x):
+    try:
+        typeName = type(x).__name__
+    except:
+        typeName = str(type(x))
+    try:
+        reprValue = repr(x)
+    except Exception as reprException:
+        reprValue = "repr(x) failed with %s: %s" %(type(reprException).__name__, str(reprException))
+        
+    raise UnicodeDecodeError('Cannot figure out how to convert type "%s" [value = "%s"] to a unicode/str object.' %(typeName, reprValue))
+
+if sys.version_info.major >= 3:
+    def toUnicode(x):
+        if isinstance(x, str):
+            return x
+        elif isinstance(x, bytes):
+            return x.decode(stringEncoding)
+        else:
+            try:
+                return str(x)
+            except:
+                return _unicodeFail(x)
+
 else:
-    sys.exit(1)
+    def toUnicode(x):
+        if isinstance(x, unicode):
+            return x
+        elif isinstance(x, str):
+            return x.decode(stringEncoding)
+        else:
+            try:
+                return unicode(str(x), encoding=stringEncoding)
+            except:
+                return _unicodeFail(x)
+
+
+def getAllRunningPids():
+    '''
+        getAllRunningPids - Gets all running pids on this system
+
+        @return list<str>- List of all running pids on this system, as string.
+            Yes, they can be ints, but we only use them as string in program
+            so... optimize!
+    '''
+
+    # Change dir to /proc and do a basic * glob instead of just globbing /proc/*.
+    #  This simplifies the list comprehesion expression 
+    curDir = os.getcwd()
+    os.chdir('/proc')
+    items = glob.glob('*')
+    try:
+        # This dir may no longer exist.
+        os.chdir(curDir)
+    except:
+        pass
+    return [x for x in items if x.isdigit()]
+
+def isPidMatch(pid, procName):
+    '''
+        isPidMatch - Determine if the executing process of a given pid matches
+          with the provided #procName , either completely or the basename.
+
+          i.e. if pid 9 has "/usr/bin/python2" as executable, both "python2" and
+            "/usr/bin/python2" will match.
+
+        @param pid <str or int> - A numeric process ID
+        @param procName <str/unicode> - The attempted match executable / name
+
+        @return <bool> - True if #pid is a running executable matching #procName , otherwise False.
+    '''
+
+    pid = str(pid) # I know always gonna be a str... but I feel dirty not having this line.
+
+    pidDir = '/proc/' + pid
+
+    # If not currently running, not a match.
+    if not os.path.isdir(pidDir):
+        return False
+
+    # Extract the cmdline, first arg is program name (argv[0] to prog).
+    #  we match against this, as full path match or basename match
+    try:
+
+        # Do a little extra-complicated reading here to prevent trying
+        #  to decode the entire thing.
+        with open(pidDir + '/cmdline', 'rb') as f:
+            contents = f.read()
+
+        execName = contents[:contents.index(b'\x00')]
+
+        execName = execName.decode(sys.stdin.encoding)
+
+        if execName == procName or os.path.basename(execName) == procName:
+            return True
+
+        realPath = os.path.realpath(execName)
+        if realPath == procName or os.path.basename(realPath) == procName:
+            return True
+
+    except:
+        pass
+
+    return False
+
+
+def listUnique(lst):
+    '''
+        listUnique - Ensure that the provided list only contains unique items, whilst retaining
+          original order.
+
+          If an item is duplicated, only the first instance of it will remain.
+
+
+        @param lst <list> - A list of things
+
+        @return <list> - A list maintaining the same order, but stripped of any duplicates.
+          (i.e. if an item appears more than once in the original #lst, only the first
+           instance will remain in the returned list. )
+    '''
+
+    ret = []
+    for item in lst:
+        if item not in ret:
+            ret.append(item)
+    return ret
+
+
+if __name__ == '__main__':
+
+    if len(sys.argv) < 2:
+            sys.stderr.write("Usage: pidof [prog1] (optional: [prog2] [prog3...]\n")
+            sys.exit(1)
+
+
+    # Gather all terms and ensure ccodec is correct
+    toMatchItems = [toUnicode(x) for x in sys.argv[1:]]
+
+    allRunningPids = getAllRunningPids()
+    matchedPids = []
+
+    for pid in allRunningPids:
+        for item in toMatchItems:
+            if isPidMatch(pid, item):
+                matchedPids.append(pid)
+
+    if matchedPids:
+        matchedPids = listUnique(matchedPids)
+
+    print ( ' '.join(matchedPids) )
+                                 
+#vim: set ts=8 sw=8 st=8 noexpandtab :
