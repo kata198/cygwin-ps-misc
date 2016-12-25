@@ -1,4 +1,18 @@
 #!/usr/bin/python2
+'''
+    pidof - An implementation of the 'pidof' command, designed to replace the
+      buggy and incomplete version that ships with cygwin. Can be used on
+      other Linux/Unix systems, but those folks should stick with procps-ng
+      provided version.
+
+    Copyright (c) 2014, 2016 by Timothy Savannah, All Rights Reserved.
+
+    Licensed under the terms of the GNU General Public License, version 3.0.
+    This program should have shipped with a copy of this license as, 'LICENSE'.
+
+    The current license can be obtained at:
+      https://raw.githubusercontent.com/kata198/cygwin-ps-misc/master/LICENSE
+'''
 
 import subprocess
 import sys
