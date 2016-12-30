@@ -19,49 +19,51 @@ import signal
 import subprocess
 import sys
 
-if len(sys.argv) > 1 and sys.argv[1][0] == '-':
-    signalName = sys.argv[1][1:]
-    if signalName.isdigit():
-        theSignal = signalName
-    else:
-        signalName = signalName.upper()
-        if hasattr(signal, signalName):
-            theSignal = getattr(signal, signalName)
+if __name__ == '__main__':
+
+    if len(sys.argv) > 1 and sys.argv[1][0] == '-':
+        signalName = sys.argv[1][1:]
+        if signalName.isdigit():
+            theSignal = signalName
         else:
-            sys.stderr.write('Invalid signal: ' + theSignal)
-            sys.exit(1)
-    sys.argv.remove(sys.argv[1])
-else:
-    theSignal = signal.SIGTERM
-
-if len(sys.argv) < 2:
-    sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
-    sys.exit(1)
-        
-
-mypid = os.getpid()
-
-pids = []
-retCode = 0
-for procName in sys.argv[1:]:
-    pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
-    thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
-    thesePids = [pid for pid in thesePids if pid and str(pid) != str(mypid)]
-    ret = pipe.wait()
-    if ret == 1 or len(thesePids) == 0:
-        sys.stderr.write(procName + ": no process found\n")
-        retCode = 1
+            signalName = signalName.upper()
+            if hasattr(signal, signalName):
+                theSignal = getattr(signal, signalName)
+            else:
+                sys.stderr.write('Invalid signal: ' + theSignal)
+                sys.exit(1)
+        sys.argv.remove(sys.argv[1])
     else:
-        pids += thesePids
-        
-if len(pids) > 0:
-    pids = list(set(pids))
-    print "Killing: " + (' '.join(pids))
-    for pid in pids:
-        pid = int(pid)
-        try:
-            os.kill(pid, theSignal)
-        except OSError:
-            print "(%d) - No such process" %(pid, )
+        theSignal = signal.SIGTERM
 
-sys.exit(retCode)
+    if len(sys.argv) < 2:
+        sys.stderr.write("Usage: killall ([optional signal]) [prog1] ([prog2], [prog3]...)\n")
+        sys.exit(1)
+            
+
+    mypid = os.getpid()
+
+    pids = []
+    retCode = 0
+    for procName in sys.argv[1:]:
+        pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
+        thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
+        thesePids = [pid for pid in thesePids if pid and str(pid) != str(mypid)]
+        ret = pipe.wait()
+        if ret == 1 or len(thesePids) == 0:
+            sys.stderr.write(procName + ": no process found\n")
+            retCode = 1
+        else:
+            pids += thesePids
+            
+    if len(pids) > 0:
+        pids = list(set(pids))
+        print "Killing: " + (' '.join(pids))
+        for pid in pids:
+            pid = int(pid)
+            try:
+                os.kill(pid, theSignal)
+            except OSError:
+                print "(%d) - No such process" %(pid, )
+
+    sys.exit(retCode)
