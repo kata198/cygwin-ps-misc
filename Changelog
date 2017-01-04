@@ -1,3 +1,4 @@
 2.0 - Jan 4 2016
 - Rewrite pidof to be a lot better and not to rely on "ps" program
 - Cleanups and updates
+- Make compatible to run under python2 or python3
