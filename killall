@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 '''
     killall - An implementation of the 'killall' command, designed to replace the
       buggy and incomplete version that ships with cygwin. Can be used on
@@ -47,7 +47,7 @@ if __name__ == '__main__':
     retCode = 0
     for procName in sys.argv[1:]:
         pipe = subprocess.Popen("pidof " + procName, shell=True, stdout=subprocess.PIPE)
-        thesePids = pipe.stdout.read().replace("\n", "").replace("\r", "").split(' ')
+        thesePids = pipe.stdout.read().decode('ascii').replace("\n", "").replace("\r", "").split(' ')
         thesePids = [pid for pid in thesePids if pid and str(pid) != str(mypid)]
         ret = pipe.wait()
         if ret == 1 or len(thesePids) == 0:
@@ -58,12 +58,12 @@ if __name__ == '__main__':
             
     if len(pids) > 0:
         pids = list(set(pids))
-        print "Killing: " + (' '.join(pids))
+        print ( "Killing: " + (' '.join(pids)) )
         for pid in pids:
             pid = int(pid)
             try:
                 os.kill(pid, theSignal)
             except OSError:
-                print "(%d) - No such process" %(pid, )
+                print ( "(%d) - No such process" %(pid, ) )
 
     sys.exit(retCode)

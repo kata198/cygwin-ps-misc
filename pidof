@@ -1,4 +1,4 @@
-#!/usr/bin/python2
+#!/usr/bin/python
 '''
     pidof - An implementation of the 'pidof' command, designed to replace the
       buggy and incomplete version that ships with cygwin. Can be used on
